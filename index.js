@@ -30,18 +30,14 @@ module.exports = class {
         }
     }
     async sub(topic, serviceFunc) {
-        try {
-            this.service.pub.on(topic, (req) => {
-                let msg = req.message
-                try {
-                    return await serviceFunc(msg)
-                } catch (err) {
-                    throw MsgError.fromError(err)
-                }
-            })
-        } catch (err) {
-            throw MsgError.fromError(err)
-        }
+        this.service.pub.on(topic, (req) => {
+            let msg = req.message
+            try {
+                return await serviceFunc(msg)
+            } catch (err) {
+                throw MsgError.fromError(err)
+            }
+        })
     }
     async request(topic, msg) {
         let msg = new Message(topic, msg)
