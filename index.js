@@ -3,55 +3,47 @@ const cote = require('cote')
 const Message = require('./proto/message')
 const MsgError = require('./proto/msgerror')
 
-module.exports = class {
-    constructor(name, config) {
-        this.name = name
+module.exports = class CeleparCote {
+    constructor(opt, config) {
+        this.opt = opt
         this.config = config || {}
-        this.service = {
-            client: new cote.Requester({
-                name: this.name + ':Client'
-            }, this.config),
-            server: new cote.Responder({
-                name: this.name + ':Server'
-            }, this.config),
-            pub: new cote.Publisher({
-                name: this.name + ':Publisher',
-            }, this.config),
-            sub: new cote.Subscriber({
-                name: this.name + ':Subscriber',
-            }, this.config)
+        this.cote = {
+            client: new cote.Requester(this.opt, this.config),
+            server: new cote.Responder(this.opt, this.config),
+            pub: new cote.Publisher(this.opt, this.config),
+            sub: new cote.Subscriber(this.opt, this.config)
         }
     }
-    async pub(topic, body) {
+    pub(topic, body) {
         try {
-            await this.service.pub.publish(topic, body)
+            this.cote.pub.publish(topic, body)
         } catch (err) {
             throw MsgError.fromError(err)
         }
     }
-    async sub(topic, serviceFunc) {
-        this.service.pub.on(topic, (req) => {
-            let msg = req.message
-            try {
-                return await serviceFunc(msg)
-            } catch (err) {
-                throw MsgError.fromError(err)
+    sub(topic, subscribeFunc) {
+        try {
+            this.cote.pub.on(topic, subscribeFunc)
+        } catch (err) {
+            throw MsgError.fromError(err)
+        }
+    }
+    async request(topic, req) {
+        try {
+            let options = {
+                type: topic,
+                message: req
             }
-        })
-    }
-    async request(topic, msg) {
-        let msg = new Message(topic, msg)
-        try {
-            let data = await this.service.client.send(msg)
-            return data.message
+            console.log(options)
+            return await this.cote.client.send(options)
         } catch (err) {
             throw MsgError.fromError(err)
         }
     }
-    async service(topic, serviceFunc) {
-        this.service.server.on(topic, (req) => {
-            let msg = req.message
+    method(topic, serviceFunc) {
+        this.cote.server.on(topic, async(req) => {
             try {
+                let msg = req.message
                 return await serviceFunc(msg)
             } catch (err) {
                 throw MsgError.fromError(err)
