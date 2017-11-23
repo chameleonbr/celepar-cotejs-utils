@@ -1,4 +1,4 @@
-export default class MsgError extends Error {
+class MsgError extends Error {
     constructor(message, file, line) {
         super(message, file, line)
     }
@@ -8,7 +8,9 @@ export default class MsgError extends Error {
             message: this.message,
         }
     }
-    static fromError(err){
+    static fromError(err) {
         return new MsgError(err.message)
     }
 }
+
+module.exports = MsgError

@@ -1,4 +1,4 @@
-export default class {
+class Message {
     constructor(type, message) {
         this.type = type
         this.message = message
@@ -10,3 +10,4 @@ export default class {
         }
     }
 }
+module.exports = Message
