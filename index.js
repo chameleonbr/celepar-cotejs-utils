@@ -12,9 +12,15 @@ class CeleparCoteRequester extends cote.Requester {
         try {
             return await this.send(req)
         } catch (err) {
-            throw MsgError.fromError(err)
+            throw err
         }
     }
+}
+
+function getAllMethods(object) {
+    return Object.getOwnPropertyNames(object).filter(function (property) {
+        return typeof object[property] == 'function';
+    });
 }
 
 module.exports = class CeleparCote {
@@ -63,6 +69,21 @@ module.exports = class CeleparCote {
                 return await serviceFunc(msg)
             } catch (err) {
                 throw MsgError.fromError(err)
+            }
+        })
+    }
+    use(obj) {
+        let that = this
+        getAllMethods(Object.getPrototypeOf(obj)).forEach((method) => {
+            if (method !== 'constructor') {
+                that.serverMethod.on(method, async(req) => {
+                    try {
+                        let msg = req.message
+                        return await obj[method].call(obj, msg)
+                    } catch (err) {
+                        throw MsgError.fromError(err)
+                    }
+                })
             }
         })
     }
