@@ -74,7 +74,8 @@ module.exports = class CeleparCote {
     }
     use(obj) {
         let that = this
-        getAllMethods(Object.getPrototypeOf(obj)).forEach((method) => {
+        let methods = getAllMethods(obj).concat(getAllMethods(Object.getPrototypeOf(obj)))
+        methods.forEach((method) => {
             if (method !== 'constructor') {
                 that.serverMethod.on(method, async(req) => {
                     try {
