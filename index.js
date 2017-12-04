@@ -16,6 +16,19 @@ class CeleparCoteRequester extends cote.Requester {
         }
     }
 }
+class CeleparCotePublisher extends cote.Publisher {
+    async pub(service, message) {
+        let req = {
+            type: service.toLowerCase(),
+            message: message
+        }
+        try {
+            this.publish(service.toLowerCase(), req)
+        } catch (err) {
+            throw MsgError.fromError(err)
+        }
+    }
+}
 
 function getAllMethods(object) {
     return Object.getOwnPropertyNames(object).filter(function (property) {
@@ -41,20 +54,14 @@ module.exports = class CeleparCote {
         this.serverMethod = new cote.Responder(Object.assign({}, this.opt, {
             name: this.opt.name + ':Responder'
         }), this.config)
-        this.publisher = new cote.Publisher(Object.assign({}, this.opt, {
-            name: this.opt.name + ':Publisher'
-        }), this.config)
         this.subscriber = new cote.Subscriber(Object.assign({}, this.opt, {
             name: this.opt.name + ':Subscriber'
         }), this.config)
+        this.publisher = new CeleparCotePublisher(Object.assign({}, this.opt, {
+            name: this.opt.name + ':Publisher'
+        }), this.config)
     }
-    pub(topic, body) {
-        try {
-            this.publisher.publish(topic, body)
-        } catch (err) {
-            throw MsgError.fromError(err)
-        }
-    }
+
     sub(topic, subscribeFunc) {
         try {
             this.subscriber.on(topic, subscribeFunc)
@@ -77,14 +84,26 @@ module.exports = class CeleparCote {
         let methods = getAllMethods(obj).concat(getAllMethods(Object.getPrototypeOf(obj)))
         methods.forEach((method) => {
             if (method !== 'constructor') {
-                that.serverMethod.on(method, async(req) => {
-                    try {
-                        let msg = req.message
-                        return await obj[method].call(obj, msg)
-                    } catch (err) {
-                        throw MsgError.fromError(err)
-                    }
-                })
+                if (method.substring(3,0).toLowerCase() === 'sub') {
+                    that.subscriber.on(method.substring(3).toLowerCase(), async(req) => {
+                        try {
+                            let msg = req.message
+                            return await obj[method].call(obj, msg)
+                        } catch (err) {
+                            throw MsgError.fromError(err)
+                        }
+                    })
+                }
+                else {
+                    that.serverMethod.on(method, async(req) => {
+                        try {
+                            let msg = req.message
+                            return await obj[method].call(obj, msg)
+                        } catch (err) {
+                            throw MsgError.fromError(err)
+                        }
+                    })
+                }
             }
         })
     }
